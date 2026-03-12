@@ -1,0 +1,188 @@
+// Karyadwar - Manufacturing Intranet Portal
+// Prisma Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum AppCategory {
+  ENTERPRISE
+  LOCAL
+}
+
+enum EventType {
+  BIRTHDAY
+  LONG_SERVICE
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  empNo         String   @unique
+  domainId      String   @unique
+  nickName      String?
+  email         String   @unique
+  password      String?
+  defaultSiteId String?
+  loginMethod   String   @default("domain") // "domain" | "email"
+  role          String   @default("user")   // "user" | "admin" | "superadmin"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  defaultSite Site?         @relation(fields: [defaultSiteId], references: [id])
+  favorites   Favorite[]
+  adminAccess AdminAccess[]
+
+  @@map("users")
+}
+
+model Site {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users            User[]
+  applications     Application[]
+  announcements    Announcement[]
+  emergencyNumbers EmergencyNumber[]
+  carouselImages   CarouselImage[]
+  tickerItems      TickerItem[]
+  adminAccess      AdminAccess[]
+
+  @@map("sites")
+}
+
+model Application {
+  id          String      @id @default(cuid())
+  name        String
+  url         String
+  category    AppCategory
+  letterIndex String      // Single character for alphabetical grouping
+  siteId      String?     // null = available to all sites (global)
+  description String?
+  contactFunc String?     // Functional contact person/team
+  contactTech String?     // Technical contact person/team
+  isActive    Boolean     @default(true)
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  site      Site?      @relation(fields: [siteId], references: [id])
+  favorites Favorite[]
+
+  @@map("applications")
+}
+
+model Favorite {
+  id             String   @id @default(cuid())
+  userId         String
+  applicationId  String?  // null if it's a custom link
+  customLinkName String?
+  customLinkUrl  String?
+  createdAt      DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+
+  @@map("favorites")
+}
+
+model Announcement {
+  id        String    @id @default(cuid())
+  title     String
+  content   String    @db.Text
+  siteId    String
+  isActive  Boolean   @default(true)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@map("announcements")
+}
+
+model EmergencyNumber {
+  id         String   @id @default(cuid())
+  name       String
+  landlineNo String?
+  mobileNo   String?
+  otherNo    String?
+  siteId     String
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@map("emergency_numbers")
+}
+
+model CarouselImage {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  linkUrl   String?
+  siteId    String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@map("carousel_images")
+}
+
+model TickerItem {
+  id        String   @id @default(cuid())
+  content   String
+  siteId    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@map("ticker_items")
+}
+
+model EmployeeEvent {
+  id         String    @id @default(cuid())
+  empNo      String
+  eventType  EventType
+  eventDate  DateTime
+  department String?
+  email      String?
+  photoUrl   String?
+  name       String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("employee_events")
+}
+
+model AdminAccess {
+  id              String   @id @default(cuid())
+  userId          String
+  permissionLevel String   // "viewer" | "editor" | "admin"
+  siteId          String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@unique([userId, siteId])
+  @@map("admin_access")
+}
