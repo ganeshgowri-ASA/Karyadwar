@@ -1,0 +1,190 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LoginMethod {
+  EMAIL
+  DOMAIN
+}
+
+enum UserRole {
+  ADMIN
+  SITE_ADMIN
+  USER
+}
+
+enum AppCategory {
+  enterprise
+  local
+}
+
+enum EventType {
+  birthday
+  long_service
+}
+
+enum PermissionLevel {
+  SUPER_ADMIN
+  SITE_ADMIN
+  CONTENT_MANAGER
+}
+
+model Site {
+  id                Int                @id @default(autoincrement())
+  name              String
+  code              String             @unique
+  is_active         Boolean            @default(true)
+  users             User[]
+  applications      Application[]
+  announcements     Announcement[]
+  emergency_numbers EmergencyNumber[]
+  carousel_images   CarouselImage[]
+  ticker_items      TickerItem[]
+  admin_access      AdminAccess[]
+  created_at        DateTime           @default(now())
+  updated_at        DateTime           @updatedAt
+
+  @@map("sites")
+}
+
+model User {
+  id            Int         @id @default(autoincrement())
+  emp_no        String?     @unique
+  domain_id     String?     @unique
+  nick_name     String?
+  email         String      @unique
+  default_site  Int?
+  login_method  LoginMethod @default(EMAIL)
+  password_hash String?
+  role          UserRole    @default(USER)
+  site          Site?       @relation(fields: [default_site], references: [id])
+  favorites     Favorite[]
+  admin_access  AdminAccess[]
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @updatedAt
+
+  @@map("users")
+}
+
+model Application {
+  id               Int         @id @default(autoincrement())
+  name             String
+  url              String
+  category         AppCategory
+  letter_index     String      @db.VarChar(1)
+  site_id          Int?
+  description      String?
+  contact_func     String?
+  contact_tech     String?
+  is_active        Boolean     @default(true)
+  sort_order       Int         @default(0)
+  site             Site?       @relation(fields: [site_id], references: [id])
+  favorites        Favorite[]
+  created_at       DateTime    @default(now())
+  updated_at       DateTime    @updatedAt
+
+  @@map("applications")
+}
+
+model Favorite {
+  id               Int         @id @default(autoincrement())
+  user_id          Int
+  app_id           Int?
+  custom_link_name String?
+  custom_link_url  String?
+  user             User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  application      Application? @relation(fields: [app_id], references: [id], onDelete: SetNull)
+  created_at       DateTime    @default(now())
+
+  @@map("favorites")
+}
+
+model Announcement {
+  id         Int       @id @default(autoincrement())
+  title      String
+  content    String    @db.Text
+  site_id    Int?
+  is_active  Boolean   @default(true)
+  created_at DateTime  @default(now())
+  expires_at DateTime?
+  site       Site?     @relation(fields: [site_id], references: [id])
+  updated_at DateTime  @updatedAt
+
+  @@map("announcements")
+}
+
+model EmergencyNumber {
+  id         Int     @id @default(autoincrement())
+  name       String
+  landline_no String?
+  mobile_no  String?
+  other_no   String?
+  site_id    Int
+  sort_order Int     @default(0)
+  site       Site    @relation(fields: [site_id], references: [id])
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("emergency_numbers")
+}
+
+model CarouselImage {
+  id         Int     @id @default(autoincrement())
+  image_url  String
+  link_url   String?
+  site_id    Int
+  sort_order Int     @default(0)
+  is_active  Boolean @default(true)
+  site       Site    @relation(fields: [site_id], references: [id])
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("carousel_images")
+}
+
+model TickerItem {
+  id        Int     @id @default(autoincrement())
+  content   String
+  site_id   Int?
+  is_active Boolean @default(true)
+  site      Site?   @relation(fields: [site_id], references: [id])
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("ticker_items")
+}
+
+model EmployeeEvent {
+  id         Int       @id @default(autoincrement())
+  emp_no     String
+  event_type EventType
+  event_date DateTime
+  department String?
+  email      String?
+  photo_url  String?
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+
+  @@map("employee_events")
+}
+
+model AdminAccess {
+  id               Int             @id @default(autoincrement())
+  user_id          Int
+  permission_level PermissionLevel
+  site_id          Int?
+  user             User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  site             Site?           @relation(fields: [site_id], references: [id])
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
+
+  @@map("admin_access")
+}
