@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const registered = searchParams.get("registered");
+
   const [loginMethod, setLoginMethod] = useState<"EMAIL" | "DOMAIN">("EMAIL");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -26,7 +30,7 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid credentials. Please try again.");
+        setError("Invalid credentials. Please check your email/domain ID and password.");
       } else {
         router.push("/dashboard");
         router.refresh();
@@ -53,6 +57,13 @@ export default function LoginPage() {
         {/* Login Card */}
         <div className="bg-white rounded-xl shadow-2xl p-8">
           <h2 className="text-xl font-semibold text-gray-800 mb-6">Sign In</h2>
+
+          {/* Registration success banner */}
+          {registered && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md text-sm mb-4">
+              Account created successfully! You can now sign in.
+            </div>
+          )}
 
           {/* Login Method Toggle */}
           <div className="flex rounded-lg border border-gray-200 p-1 mb-6 bg-gray-50">
@@ -91,7 +102,7 @@ export default function LoginPage() {
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder={
                   loginMethod === "EMAIL"
-                    ? "Enter your email"
+                    ? "you@company.com"
                     : "Enter your domain ID"
                 }
                 className="input-field"
@@ -122,11 +133,25 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full btn-primary py-3 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? "Signing in…" : "Sign In"}
             </button>
           </form>
 
-          <p className="text-xs text-gray-400 text-center mt-6">
+          {/* Demo credentials hint */}
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-md text-xs text-blue-700">
+            <p className="font-semibold mb-1">Demo accounts:</p>
+            <p>Admin: <span className="font-mono">admin@karyadwar.com</span> / <span className="font-mono">admin123</span></p>
+            <p>User: <span className="font-mono">user@karyadwar.com</span> / <span className="font-mono">user123</span></p>
+          </div>
+
+          <p className="text-center text-sm text-gray-500 mt-5">
+            Don&apos;t have an account?{" "}
+            <Link href="/register" className="text-blue-600 hover:underline font-medium">
+              Sign Up
+            </Link>
+          </p>
+
+          <p className="text-xs text-gray-400 text-center mt-4">
             For IT support, contact helpdesk@company.com
           </p>
         </div>
